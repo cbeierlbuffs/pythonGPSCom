@@ -7,15 +7,71 @@ from sqlite3 import Error
 from win32wifi import Win32Wifi as ww
 import re
 
-db_file = "c:\\users\\cbben\\onedrive\\documents\\github\\pythonGPSCom\\wifidata.sqlite"
-comport = "COM4"
+'''
+##SQL Create Statement for Data Table
+CREATE TABLE "WifiData" (
+	"datetime"	TEXT,
+	"lat1"	TEXT,
+	"lon1"	TEXT,
+	"lat2"	NUMERIC,
+	"lon2"	NUMERIC,
+	"ssidname"	TEXT,
+	"nettype"	TEXT,
+	"authtype"	TEXT,
+	"enctype"	TEXT,
+	"basenum"	INTEGER,
+	"basemac"	TEXT,
+	"signalstrength"	TEXT,
+	"radiotype"	TEXT,
+	"radioband"	TEXT,
+	"channel"	TEXT,
+	"brateslst"	TEXT,
+	"orateslst"	TEXT
+)
+'''
+
+db_file = ".\wifidata.sqlite"
+comport = "COM3"
+
 
 def create_connection(db_file):
     conn = None
     try:
         conn = sqlite3.connect(db_file)
+        print(f"Connected to SQLite database: {db_file}")
+
+        # Create the table if it doesn't exist
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS "WifiData" (
+            "datetime" TEXT,
+            "lat1" TEXT,
+            "lon1" TEXT,
+            "lat2" NUMERIC,
+            "lon2" NUMERIC,
+            "ssidname" TEXT,
+            "nettype" TEXT,
+            "authtype" TEXT,
+            "enctype" TEXT,
+            "basenum" INTEGER,
+            "basemac" TEXT,
+            "signalstrength" TEXT,
+            "radiotype" TEXT,
+            "radioband" TEXT,
+            "channel" TEXT,
+            "brateslst" TEXT,
+            "orateslst" TEXT
+        );
+        """
+
+        # Execute the SQL command to create the table
+        with conn:
+            cursor = conn.cursor()
+            cursor.execute(create_table_sql)
+            print("WifiData table created successfully (if it didn't already exist).")
+
     except Error as e:
-        print(e)
+        print(f"Error: {e}")
+
     return conn
 
 def get_gpspos():
@@ -58,12 +114,10 @@ def wifiscan():
         ww.WlanCloseHandle(handle)
 
 def getnetworks():
-    ##print(str(datetimeobj),lat+ns_ind,long+ew_ind,latdec,longdec)
     winwifilst = subprocess.check_output(["netsh", "wlan", "show", "networks", "mode=bssid"])
     winwifilst = winwifilst.decode("ascii")  # needed in python 3
     winwifilst = winwifilst.replace("\r", "")
     winwifilstitem = winwifilst.split("\n")
-    #print (winwifilst)
     for line in winwifilstitem:
                 if (re.match("^SSID",line)):
                     SSIDName= line.split(" : ")
@@ -107,10 +161,11 @@ def getnetworks():
                     cur = conn.cursor()
                     cur.execute(sql, newrecord)
                     conn.commit()
+                    print(newrecord)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    ser = serial.Serial('COM4', 9600, timeout=0,parity=serial.PARITY_EVEN, rtscts=1)
+    ser = serial.Serial(comport, 9600, timeout=0,parity=serial.PARITY_EVEN, rtscts=1)
     conn = create_connection(db_file)
     locserial = 0
 
